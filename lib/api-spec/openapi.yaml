@@ -3,20 +3,38 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: GolfHero API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User profile operations
+  - name: scores
+    description: Golf score management
+  - name: subscriptions
+    description: Subscription management
+  - name: charities
+    description: Charity directory
+  - name: draws
+    description: Draw engine
+  - name: prizes
+    description: Prize pool
+  - name: winners
+    description: Winner verification
+  - name: admin
+    description: Admin operations
+  - name: dashboard
+    description: Dashboard summaries
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +42,668 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── USER PROFILE ─────────────────────────────────────────────────────────────
+  /users/me:
+    get:
+      operationId: getMyProfile
+      tags: [users]
+      summary: Get current user's profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: upsertMyProfile
+      tags: [users]
+      summary: Create or update current user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertProfileBody"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  # ── SCORES ────────────────────────────────────────────────────────────────────
+  /scores:
+    get:
+      operationId: getMyScores
+      tags: [scores]
+      summary: Get current user's scores (latest 5)
+      responses:
+        "200":
+          description: List of scores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Score"
+    post:
+      operationId: addScore
+      tags: [scores]
+      summary: Add a new score (rolling 5-score logic)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddScoreBody"
+      responses:
+        "201":
+          description: Score added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Score"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Score for this date already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /scores/{id}:
+    put:
+      operationId: updateScore
+      tags: [scores]
+      summary: Update an existing score
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateScoreBody"
+      responses:
+        "200":
+          description: Updated score
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Score"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteScore
+      tags: [scores]
+      summary: Delete a score
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── SUBSCRIPTIONS ─────────────────────────────────────────────────────────────
+  /subscriptions/status:
+    get:
+      operationId: getSubscriptionStatus
+      tags: [subscriptions]
+      summary: Get current user's subscription status
+      responses:
+        "200":
+          description: Subscription status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+
+  /subscriptions/subscribe:
+    post:
+      operationId: subscribe
+      tags: [subscriptions]
+      summary: Create/activate a subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscribeBody"
+      responses:
+        "201":
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+
+  /subscriptions/cancel:
+    post:
+      operationId: cancelSubscription
+      tags: [subscriptions]
+      summary: Cancel current user's subscription
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+
+  # ── CHARITIES ─────────────────────────────────────────────────────────────────
+  /charities:
+    get:
+      operationId: listCharities
+      tags: [charities]
+      summary: List all charities
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: featured
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of charities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Charity"
+    post:
+      operationId: createCharity
+      tags: [charities]
+      summary: Create a charity (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCharityBody"
+      responses:
+        "201":
+          description: Created charity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Charity"
+
+  /charities/{id}:
+    get:
+      operationId: getCharity
+      tags: [charities]
+      summary: Get a charity by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Charity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Charity"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateCharity
+      tags: [charities]
+      summary: Update a charity (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCharityBody"
+      responses:
+        "200":
+          description: Updated charity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Charity"
+    delete:
+      operationId: deleteCharity
+      tags: [charities]
+      summary: Delete a charity (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /charities/my-selection:
+    get:
+      operationId: getMyCharitySelection
+      tags: [charities]
+      summary: Get the current user's selected charity and contribution %
+      responses:
+        "200":
+          description: Charity selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharitySelection"
+    put:
+      operationId: updateMyCharitySelection
+      tags: [charities]
+      summary: Update charity selection and contribution percentage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCharitySelectionBody"
+      responses:
+        "200":
+          description: Updated selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharitySelection"
+
+  # ── DRAWS ─────────────────────────────────────────────────────────────────────
+  /draws:
+    get:
+      operationId: listDraws
+      tags: [draws]
+      summary: List all draws (published)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [upcoming, active, completed]
+      responses:
+        "200":
+          description: List of draws
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Draw"
+    post:
+      operationId: createDraw
+      tags: [draws]
+      summary: Create a new draw (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDrawBody"
+      responses:
+        "201":
+          description: Created draw
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Draw"
+
+  /draws/current:
+    get:
+      operationId: getCurrentDraw
+      tags: [draws]
+      summary: Get the current active draw
+      responses:
+        "200":
+          description: Current draw
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Draw"
+        "404":
+          description: No active draw
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /draws/{id}:
+    get:
+      operationId: getDraw
+      tags: [draws]
+      summary: Get a draw by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Draw
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Draw"
+
+  /draws/{id}/simulate:
+    post:
+      operationId: simulateDraw
+      tags: [draws]
+      summary: Simulate a draw (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulateDrawBody"
+      responses:
+        "200":
+          description: Simulation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DrawSimulationResult"
+
+  /draws/{id}/publish:
+    post:
+      operationId: publishDraw
+      tags: [draws]
+      summary: Publish draw results (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Published draw
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Draw"
+
+  # ── PRIZES ────────────────────────────────────────────────────────────────────
+  /prizes/pool:
+    get:
+      operationId: getPrizePool
+      tags: [prizes]
+      summary: Get current prize pool breakdown
+      responses:
+        "200":
+          description: Prize pool
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrizePool"
+
+  /prizes/my-winnings:
+    get:
+      operationId: getMyWinnings
+      tags: [prizes]
+      summary: Get current user's winnings history
+      responses:
+        "200":
+          description: List of winnings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Winning"
+
+  # ── WINNER VERIFICATION ───────────────────────────────────────────────────────
+  /winners:
+    get:
+      operationId: listWinners
+      tags: [winners]
+      summary: List all winners (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, paid]
+      responses:
+        "200":
+          description: List of winners
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Winner"
+
+  /winners/{id}/verify:
+    post:
+      operationId: verifyWinner
+      tags: [winners]
+      summary: Approve or reject a winner submission (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyWinnerBody"
+      responses:
+        "200":
+          description: Updated winner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Winner"
+
+  /winners/{id}/payout:
+    post:
+      operationId: markWinnerPaid
+      tags: [winners]
+      summary: Mark a winner as paid (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated winner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Winner"
+
+  /winners/submit-proof:
+    post:
+      operationId: submitWinnerProof
+      tags: [winners]
+      summary: Submit proof of win (user)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitWinnerProofBody"
+      responses:
+        "201":
+          description: Proof submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Winner"
+
+  # ── DASHBOARD SUMMARIES ────────────────────────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get user dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/admin-stats:
+    get:
+      operationId: getAdminStats
+      tags: [dashboard]
+      summary: Get admin dashboard statistics
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  # ── ADMIN USERS ────────────────────────────────────────────────────────────────
+  /admin/users:
+    get:
+      operationId: listUsers
+      tags: [admin]
+      summary: List all users (admin)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+
+  /admin/users/{clerkId}:
+    get:
+      operationId: getUser
+      tags: [admin]
+      summary: Get user by Clerk ID (admin)
+      parameters:
+        - name: clerkId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+    patch:
+      operationId: adminUpdateUser
+      tags: [admin]
+      summary: Update user profile (admin)
+      parameters:
+        - name: clerkId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /admin/users/{clerkId}/scores:
+    get:
+      operationId: adminGetUserScores
+      tags: [admin]
+      summary: Get user's scores (admin)
+      parameters:
+        - name: clerkId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Scores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Score"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +714,534 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: ["string", "null"]
+        lastName:
+          type: ["string", "null"]
+        handicap:
+          type: ["number", "null"]
+        role:
+          type: string
+          enum: [user, admin]
+        charityId:
+          type: ["integer", "null"]
+        charityContributionPercent:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clerkId
+        - email
+        - role
+        - charityContributionPercent
+        - createdAt
+
+    UpsertProfileBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        handicap:
+          type: number
+
+    Score:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        score:
+          type: integer
+        scoreDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - score
+        - scoreDate
+        - createdAt
+
+    AddScoreBody:
+      type: object
+      properties:
+        score:
+          type: integer
+          minimum: 1
+          maximum: 45
+        scoreDate:
+          type: string
+          format: date
+      required:
+        - score
+        - scoreDate
+
+    UpdateScoreBody:
+      type: object
+      properties:
+        score:
+          type: integer
+          minimum: 1
+          maximum: 45
+        scoreDate:
+          type: string
+          format: date
+
+    SubscriptionStatus:
+      type: object
+      properties:
+        id:
+          type: ["integer", "null"]
+        userId:
+          type: ["integer", "null"]
+        plan:
+          type: ["string", "null"]
+          enum: [monthly, yearly, null]
+        status:
+          type: string
+          enum: [active, inactive, cancelled, lapsed]
+        renewalDate:
+          type: ["string", "null"]
+          format: date-time
+        cancelledAt:
+          type: ["string", "null"]
+          format: date-time
+        monthlyContributionAmount:
+          type: number
+      required:
+        - status
+        - monthlyContributionAmount
+
+    SubscribeBody:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [monthly, yearly]
+      required:
+        - plan
+
+    Charity:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        featured:
+          type: boolean
+        upcomingEvent:
+          type: ["string", "null"]
+        upcomingEventDate:
+          type: ["string", "null"]
+          format: date
+        totalReceived:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - description
+        - featured
+        - totalReceived
+        - createdAt
+
+    CreateCharityBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        website:
+          type: string
+        category:
+          type: string
+        featured:
+          type: boolean
+        upcomingEvent:
+          type: string
+        upcomingEventDate:
+          type: string
+          format: date
+      required:
+        - name
+        - description
+
+    CharitySelection:
+      type: object
+      properties:
+        charityId:
+          type: ["integer", "null"]
+        charity:
+          $ref: "#/components/schemas/Charity"
+        contributionPercent:
+          type: integer
+      required:
+        - contributionPercent
+
+    UpdateCharitySelectionBody:
+      type: object
+      properties:
+        charityId:
+          type: integer
+        contributionPercent:
+          type: integer
+          minimum: 10
+          maximum: 100
+      required:
+        - charityId
+        - contributionPercent
+
+    Draw:
+      type: object
+      properties:
+        id:
+          type: integer
+        month:
+          type: string
+        year:
+          type: integer
+        status:
+          type: string
+          enum: [upcoming, active, simulated, published, completed]
+        drawType:
+          type: string
+          enum: [random, algorithmic]
+        winningNumbers:
+          type: ["string", "null"]
+        jackpotRolledOver:
+          type: boolean
+        jackpotAmount:
+          type: number
+        totalPool:
+          type: number
+        participantCount:
+          type: integer
+        publishedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - month
+        - year
+        - status
+        - drawType
+        - jackpotRolledOver
+        - jackpotAmount
+        - totalPool
+        - participantCount
+        - createdAt
+
+    CreateDrawBody:
+      type: object
+      properties:
+        month:
+          type: string
+        year:
+          type: integer
+        drawType:
+          type: string
+          enum: [random, algorithmic]
+      required:
+        - month
+        - year
+        - drawType
+
+    SimulateDrawBody:
+      type: object
+      properties:
+        drawType:
+          type: string
+          enum: [random, algorithmic]
+      required:
+        - drawType
+
+    DrawSimulationResult:
+      type: object
+      properties:
+        drawId:
+          type: integer
+        winningNumbers:
+          type: string
+        matches5:
+          type: integer
+        matches4:
+          type: integer
+        matches3:
+          type: integer
+        prize5:
+          type: number
+        prize4:
+          type: number
+        prize3:
+          type: number
+      required:
+        - drawId
+        - winningNumbers
+        - matches5
+        - matches4
+        - matches3
+        - prize5
+        - prize4
+        - prize3
+
+    PrizePool:
+      type: object
+      properties:
+        totalPool:
+          type: number
+        jackpotPool:
+          type: number
+        pool4Match:
+          type: number
+        pool3Match:
+          type: number
+        jackpotRolledOver:
+          type: boolean
+        activeSubscribers:
+          type: integer
+      required:
+        - totalPool
+        - jackpotPool
+        - pool4Match
+        - pool3Match
+        - jackpotRolledOver
+        - activeSubscribers
+
+    Winning:
+      type: object
+      properties:
+        id:
+          type: integer
+        drawId:
+          type: integer
+        drawMonth:
+          type: string
+        drawYear:
+          type: integer
+        matchType:
+          type: string
+          enum: [match5, match4, match3]
+        prizeAmount:
+          type: number
+        paymentStatus:
+          type: string
+          enum: [pending, paid]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - drawId
+        - drawMonth
+        - drawYear
+        - matchType
+        - prizeAmount
+        - paymentStatus
+        - createdAt
+
+    Winner:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        userEmail:
+          type: string
+        userName:
+          type: ["string", "null"]
+        drawId:
+          type: integer
+        drawMonth:
+          type: string
+        drawYear:
+          type: integer
+        matchType:
+          type: string
+          enum: [match5, match4, match3]
+        prizeAmount:
+          type: number
+        proofUrl:
+          type: ["string", "null"]
+        verificationStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        paymentStatus:
+          type: string
+          enum: [pending, paid]
+        adminNotes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - userEmail
+        - drawId
+        - drawMonth
+        - drawYear
+        - matchType
+        - prizeAmount
+        - verificationStatus
+        - paymentStatus
+        - createdAt
+
+    VerifyWinnerBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [approved, rejected]
+        adminNotes:
+          type: string
+      required:
+        - status
+
+    SubmitWinnerProofBody:
+      type: object
+      properties:
+        winnerId:
+          type: integer
+        proofUrl:
+          type: string
+      required:
+        - winnerId
+        - proofUrl
+
+    DashboardSummary:
+      type: object
+      properties:
+        subscriptionStatus:
+          type: string
+          enum: [active, inactive, cancelled, lapsed]
+        subscriptionPlan:
+          type: ["string", "null"]
+          enum: [monthly, yearly, null]
+        renewalDate:
+          type: ["string", "null"]
+        totalScoresEntered:
+          type: integer
+        latestScore:
+          type: ["integer", "null"]
+        drawsEntered:
+          type: integer
+        totalWon:
+          type: number
+        pendingPayouts:
+          type: number
+        selectedCharity:
+          type: ["string", "null"]
+        contributionPercent:
+          type: integer
+        totalContributed:
+          type: number
+      required:
+        - subscriptionStatus
+        - totalScoresEntered
+        - drawsEntered
+        - totalWon
+        - pendingPayouts
+        - contributionPercent
+        - totalContributed
+
+    AdminStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        activeSubscribers:
+          type: integer
+        monthlyRevenue:
+          type: number
+        totalPrizePool:
+          type: number
+        totalCharityContributions:
+          type: number
+        pendingVerifications:
+          type: integer
+        totalDrawsRun:
+          type: integer
+        currentJackpot:
+          type: number
+      required:
+        - totalUsers
+        - activeSubscribers
+        - monthlyRevenue
+        - totalPrizePool
+        - totalCharityContributions
+        - pendingVerifications
+        - totalDrawsRun
+        - currentJackpot
+
+    UserListResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserProfile"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - users
+        - total
+        - page
+        - limit
+
+    AdminUpdateUserBody:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, admin]
+        firstName:
+          type: string
+        lastName:
+          type: string

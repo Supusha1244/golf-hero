@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD700" />
+      <stop offset="50%" stop-color="#FFA500" />
+      <stop offset="100%" stop-color="#FF8C00" />
+    </linearGradient>
+  </defs>
+  <!-- Background Shield -->
+  <path d="M100 10 L180 40 L180 110 C180 150 140 180 100 190 C60 180 20 150 20 110 L20 40 Z" fill="#0A1128" stroke="url(#goldGradient)" stroke-width="8" />
+  
+  <!-- Golf Tee and Ball -->
+  <path d="M100 160 L100 100 M90 100 L110 100" stroke="url(#goldGradient)" stroke-width="6" stroke-linecap="round" />
+  <circle cx="100" cy="85" r="15" fill="#FFFFFF" />
+  
+  <!-- Star / Shine effect -->
+  <path d="M100 30 L105 50 L125 55 L105 60 L100 80 L95 60 L75 55 L95 50 Z" fill="url(#goldGradient)" />
+</svg>
