@@ -1,7 +1,7 @@
 {
   "version": 2,
   "installCommand": "pnpm install",
-  "buildCommand": "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/golf-hero run build && mkdir -p public && cp -r artifacts/golf-hero/dist/public/. public/",
+  "buildCommand": "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/golf-hero run build",
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index" },
     { "source": "/(.*)", "destination": "/index.html" }
